@@ -33,6 +33,9 @@ function LocalMedia(opts) {
     }
 
     WildEmitter.call(this);
+
+    this.localStreams = [];
+    this.localScreens = [];
 }
 
 
@@ -48,7 +51,7 @@ LocalMedia.prototype.startLocalMedia = function (mediaConstraints, cb) {
             if (constraints.audio && self.config.detectSpeakingEvents) {
                 self.setupAudioMonitor(stream);
             }
-            self.localStream = stream;
+            self.localStreams.push(stream);
 
             if (self.config.autoAdjustMic) {
                 self.gainController = new GainController(stream);
@@ -62,10 +65,21 @@ LocalMedia.prototype.startLocalMedia = function (mediaConstraints, cb) {
     });
 };
 
-LocalMedia.prototype.stopLocalMedia = function () {
-    if (this.localStream) {
-        this.localStream.stop();
-        this.emit('localStreamStopped');
+LocalMedia.prototype.stopLocalMedia = function (stream) {
+    var self = this;
+    if (stream) {
+        stream.stop();
+        self.emit('localStreamStopped', stream);
+        var idx = self.localStreams.indexOf(stream);
+        if (idx > -1) {
+            self.localStreams = self.localStreams.splice(idx, 1);
+        }
+    } else {
+        this.localStreams.forEach(function (stream) {
+            stream.stop();
+            self.emit('localStreamStopped', stream);
+        });
+        this.localStreams = [];
     }
 };
 
@@ -73,12 +87,16 @@ LocalMedia.prototype.startScreenShare = function (cb) {
     var self = this;
     getScreenMedia(function (err, stream) {
         if (!err) {
-            self.localScreen = stream;
+            self.localScreens.push(stream);
              
             // TODO: might need to migrate to the video tracks onended
             stream.onended = function () {
                 self.emit('localScreenRemoved', stream);
                 self.stopScreenShare();
+                var idx = self.localScreens.indexOf(stream);
+                if (idx > -1) {
+                    self.localScreens = self.localScreens.splice(idx, 1);
+                }
             };
 
             self.emit('localScreen', stream);
@@ -89,10 +107,21 @@ LocalMedia.prototype.startScreenShare = function (cb) {
     });
 };
 
-LocalMedia.prototype.stopScreenShare = function () {
-    if (this.localScreen) {
-        this.localScreen.stop();
-        this.emit('localScreenStopped');
+LocalMedia.prototype.stopScreenShare = function (stream) {
+    var self = this;
+    if (stream) {
+        stream.stop();
+        self.emit('localScreenStopped', stream);
+        var idx = self.localScreens.indexOf(stream);
+        if (idx > -1) {
+            self.localScreens = self.localScreens.splice(idx, 1);
+        }
+    } else {
+        this.localScreens.forEach(function (stream) {
+            stream.stop();
+            self.emit('localScreenStopped', stream);
+        });
+        this.localScreens = [];
     }
 };
 
