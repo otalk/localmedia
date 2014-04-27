@@ -194,13 +194,17 @@ LocalMedia.prototype._audioEnabled = function (bool) {
     // work around for chrome 27 bug where disabling tracks
     // doesn't seem to work (works in canary, remove when working)
     this.setMicIfEnabled(bool ? 1 : 0);
-    this.localStream.getAudioTracks().forEach(function (track) {
-        track.enabled = !!bool;
+    this.localStreams.forEach(function (stream) {
+        stream.getAudioTracks().forEach(function (track) {
+            track.enabled = !!bool;
+        });
     });
 };
 LocalMedia.prototype._videoEnabled = function (bool) {
-    this.localStream.getVideoTracks().forEach(function (track) {
-        track.enabled = !!bool;
+    this.localStreams.forEach(function (stream) {
+        stream.getVideoTracks().forEach(function (track) {
+            track.enabled = !!bool;
+        });
     });
 };
 
