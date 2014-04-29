@@ -22,7 +22,6 @@
   },
   "devDependencies": {
     "precommit-hook": "0.4.x",
-    "browserify": "2.22.0",
-    "tape": "2.x"
+    "browserify": "2.22.0"
   }
 }
