@@ -38,9 +38,14 @@ function LocalMedia(opts) {
     this.localScreens = [];
 }
 
-
 util.inherits(LocalMedia, WildEmitter);
 
+// fallback for old .localStream behaviour
+Object.defineProperty(LocalMedia.prototype, 'localStream', 
+    { get: function () {
+        return this.localStreams.length > 0 ? this.localStreams[0] : null;
+    }
+});
 
 LocalMedia.prototype.startLocalMedia = function (mediaConstraints, cb) {
     var self = this;
