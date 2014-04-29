@@ -150,18 +150,18 @@ LocalMedia.prototype.setupAudioMonitor = function (stream) {
     var timeout;
 
     audio.on('speaking', function () {
+        self.emit('speaking');
         if (self.hardMuted) return;
         self.setMicIfEnabled(1);
-        self.emit('speaking');
     });
 
     audio.on('stopped_speaking', function () {
-        if (self.hardMuted) return;
         if (timeout) clearTimeout(timeout);
 
         timeout = setTimeout(function () {
-            self.setMicIfEnabled(0.5);
             self.emit('stoppedSpeaking');
+            if (self.hardMuted) return;
+            self.setMicIfEnabled(0.5);
         }, 1000);
     });
 };
