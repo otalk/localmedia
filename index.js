@@ -164,6 +164,9 @@ LocalMedia.prototype.setupAudioMonitor = function (stream) {
             self.setMicIfEnabled(0.5);
         }, 1000);
     });
+    audio.on('volume_change', function (volume, treshold) {
+        self.emit('volumeChange', volume, treshold);
+    });
 };
 
 // We do this as a seperate method in order to
