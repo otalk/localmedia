@@ -14,10 +14,8 @@
   "dependencies": {
     "webrtcsupport": "0.7.x",
     "wildemitter": "^1.0.0",
-    "rtcpeerconnection": "^2.0.9",
     "getusermedia": "0.2.1",
     "getscreenmedia": "^1.0.0",
-    "sdp-jingle-json": "^1.0.0",
     "hark": "0.2.x",
     "mediastream-gain": "0.1.x",
     "mockconsole": "0.0.x"
