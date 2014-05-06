@@ -21,7 +21,8 @@
     "mockconsole": "0.0.x"
   },
   "devDependencies": {
-    "precommit-hook": "0.4.x",
+    "precommit-hook": "^1.0.0",
     "browserify": "2.22.0"
-  }
+  },
+  "scripts": {}
 }

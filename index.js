@@ -9,8 +9,8 @@ var mockconsole = require('mockconsole');
 
 
 function LocalMedia(opts) {
-    var self = this;
-    var options = opts || {};
+    WildEmitter.call(this);
+
     var config = this.config = {
         autoAdjustMic: false,
         detectSpeakingEvents: true,
@@ -26,28 +26,24 @@ function LocalMedia(opts) {
         this.config[item] = opts[item];
     }
 
+    this.logger = config.logger;
+    this._log = this.logger.log.bind(this.logger, 'LocalMedia:');
+    this._logerror = this.logger.error.bind(this.logger, 'LocalMedia:');
+
     this.screenSharingSupport = webrtc.screenSharing;
-
-    if (!webrtc.support) {
-        this.logger.error('Your browser does not support local media capture.');
-    }
-
-    WildEmitter.call(this);
 
     this.localStreams = [];
     this.localScreens = [];
+
+    if (!webrtc.support) {
+        this._logerror('Your browser does not support local media capture.');
+    }
 }
 
 util.inherits(LocalMedia, WildEmitter);
 
-// fallback for old .localStream behaviour
-Object.defineProperty(LocalMedia.prototype, 'localStream', 
-    { get: function () {
-        return this.localStreams.length > 0 ? this.localStreams[0] : null;
-    }
-});
 
-LocalMedia.prototype.startLocalMedia = function (mediaConstraints, cb) {
+LocalMedia.prototype.start = function (mediaConstraints, cb) {
     var self = this;
     var constraints = mediaConstraints || this.config.media;
 
@@ -66,11 +62,13 @@ LocalMedia.prototype.startLocalMedia = function (mediaConstraints, cb) {
 
             self.emit('localStream', stream);
         }
-        if (cb) cb(err, stream);
+        if (cb) {
+            return cb(err, stream);
+        }
     });
 };
 
-LocalMedia.prototype.stopLocalMedia = function (stream) {
+LocalMedia.prototype.stop = function (stream) {
     var self = this;
     if (stream) {
         stream.stop();
@@ -93,7 +91,7 @@ LocalMedia.prototype.startScreenShare = function (cb) {
     getScreenMedia(function (err, stream) {
         if (!err) {
             self.localScreens.push(stream);
-             
+
             // TODO: might need to migrate to the video tracks onended
             stream.onended = function () {
                 self.emit('localScreenRemoved', stream);
@@ -108,7 +106,9 @@ LocalMedia.prototype.startScreenShare = function (cb) {
         }
 
         // enable the callback
-        if (cb) cb(err, stream);
+        if (cb) {
+            return cb(err, stream);
+        }
     });
 };
 
@@ -144,23 +144,29 @@ LocalMedia.prototype.unmute = function () {
 };
 
 LocalMedia.prototype.setupAudioMonitor = function (stream) {
-    this.logger.log('Setup audio');
+    this._log('Setup audio');
     var audio = hark(stream);
     var self = this;
     var timeout;
 
     audio.on('speaking', function () {
         self.emit('speaking');
-        if (self.hardMuted) return;
+        if (self.hardMuted) {
+            return;
+        }
         self.setMicIfEnabled(1);
     });
 
     audio.on('stopped_speaking', function () {
-        if (timeout) clearTimeout(timeout);
+        if (timeout) {
+            clearTimeout(timeout);
+        }
 
         timeout = setTimeout(function () {
             self.emit('stoppedSpeaking');
-            if (self.hardMuted) return;
+            if (self.hardMuted) {
+                return;
+            }
             self.setMicIfEnabled(0.5);
         }, 1000);
     });
@@ -173,7 +179,9 @@ LocalMedia.prototype.setupAudioMonitor = function (stream) {
 // still leave the "setMicVolume" as a working
 // method.
 LocalMedia.prototype.setMicIfEnabled = function (volume) {
-    if (!this.config.autoAdjustMic) return;
+    if (!this.config.autoAdjustMic) {
+        return;
+    }
     this.gainController.setGain(volume);
 };
 
@@ -215,6 +223,18 @@ LocalMedia.prototype._videoEnabled = function (bool) {
         });
     });
 };
+
+
+// Backwards Compat
+LocalMedia.prototype.startLocalMedia = LocalMedia.prototype.start;
+LocalMedia.prototype.stopLocalMedia = LocalMedia.prototype.stop;
+
+// fallback for old .localStream behaviour
+Object.defineProperty(LocalMedia.prototype, 'localStream', {
+    get: function () {
+        return this.localStreams.length > 0 ? this.localStreams[0] : null;
+    }
+});
 
 
 module.exports = LocalMedia;
