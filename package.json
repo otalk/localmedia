@@ -14,7 +14,7 @@
   "dependencies": {
     "webrtcsupport": "0.7.x",
     "wildemitter": "^1.0.0",
-    "getusermedia": "0.2.1",
+    "getusermedia": "0.2.x",
     "getscreenmedia": "^1.0.0",
     "hark": "0.2.x",
     "mediastream-gain": "0.1.x",
