@@ -224,6 +224,27 @@ LocalMedia.prototype._videoEnabled = function (bool) {
     });
 };
 
+// check if all audio streams are enabled
+LocalMedia.prototype.isAudioEnabled = function () {
+    var enabled = true;
+    this.localStreams.forEach(function (stream) {
+        stream.getAudioTracks().forEach(function (track) {
+            enabled &= track.enabled;
+        });
+    });
+    return enabled;
+};
+
+// check if all video streams are enabled
+LocalMedia.prototype.isVideoEnabled = function () {
+    var enabled = true;
+    this.webrtc.localStreams.forEach(function (stream) {
+        stream.getVideoTracks().forEach(function (track) {
+            enabled &= track.enabled;
+        });
+    });
+    return enabled;
+};
 
 // Backwards Compat
 LocalMedia.prototype.startLocalMedia = LocalMedia.prototype.start;
