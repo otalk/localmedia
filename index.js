@@ -60,6 +60,15 @@ LocalMedia.prototype.start = function (mediaConstraints, cb) {
                 self.setMicIfEnabled(0.5);
             }
 
+            // TODO: might need to migrate to the video tracks onended
+            stream.addEventListener('ended', function () {
+                var idx = self.localStreams.indexOf(stream);
+                if (idx > -1) {
+                    self.localScreens.splice(idx, 1);
+                }
+                self.emit('localStreamStopped', stream);
+            });
+
             self.emit('localStream', stream);
         }
         if (cb) {
@@ -93,15 +102,13 @@ LocalMedia.prototype.startScreenShare = function (cb) {
             self.localScreens.push(stream);
 
             // TODO: might need to migrate to the video tracks onended
-            stream.onended = function () {
-                self.emit('localScreenRemoved', stream);
-                self.stopScreenShare();
+            stream.addEventListener('ended', function () {
                 var idx = self.localScreens.indexOf(stream);
                 if (idx > -1) {
-                    self.localScreens = self.localScreens.splice(idx, 1);
+                    self.localScreens.splice(idx, 1);
                 }
-            };
-
+                self.emit('localScreenStopped', stream);
+            });
             self.emit('localScreen', stream);
         }
 
@@ -116,15 +123,13 @@ LocalMedia.prototype.stopScreenShare = function (stream) {
     var self = this;
     if (stream) {
         stream.stop();
-        self.emit('localScreenStopped', stream);
         var idx = self.localScreens.indexOf(stream);
         if (idx > -1) {
-            self.localScreens = self.localScreens.splice(idx, 1);
+            self.localScreens.splice(idx, 1);
         }
     } else {
         this.localScreens.forEach(function (stream) {
             stream.stop();
-            self.emit('localScreenStopped', stream);
         });
         this.localScreens = [];
     }
@@ -256,6 +261,11 @@ Object.defineProperty(LocalMedia.prototype, 'localStream', {
         return this.localStreams.length > 0 ? this.localStreams[0] : null;
     }
 });
-
+// fallback for old .localScreen behaviour
+Object.defineProperty(LocalMedia.prototype, 'localScreen', 
+    { get: function () {
+        return this.localScreens.length > 0 ? this.localScreens[0] : null;
+    }
+});
 
 module.exports = LocalMedia;
