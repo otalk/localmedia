@@ -243,7 +243,7 @@ LocalMedia.prototype.isAudioEnabled = function () {
 // check if all video streams are enabled
 LocalMedia.prototype.isVideoEnabled = function () {
     var enabled = true;
-    this.webrtc.localStreams.forEach(function (stream) {
+    this.localStreams.forEach(function (stream) {
         stream.getVideoTracks().forEach(function (track) {
             enabled &= track.enabled;
         });
