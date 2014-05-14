@@ -61,13 +61,16 @@ LocalMedia.prototype.start = function (mediaConstraints, cb) {
             }
 
             // TODO: might need to migrate to the video tracks onended
-            stream.addEventListener('ended', function () {
+            // FIXME: firefox does not seem to trigger this...
+            stream.onended = function () {
+                /*
                 var idx = self.localStreams.indexOf(stream);
                 if (idx > -1) {
                     self.localScreens.splice(idx, 1);
                 }
                 self.emit('localStreamStopped', stream);
-            });
+                */
+            };
 
             self.emit('localStream', stream);
         }
@@ -79,6 +82,7 @@ LocalMedia.prototype.start = function (mediaConstraints, cb) {
 
 LocalMedia.prototype.stop = function (stream) {
     var self = this;
+    // FIXME: duplicates cleanup code until fixed in FF
     if (stream) {
         stream.stop();
         self.emit('localStreamStopped', stream);
@@ -102,13 +106,15 @@ LocalMedia.prototype.startScreenShare = function (cb) {
             self.localScreens.push(stream);
 
             // TODO: might need to migrate to the video tracks onended
-            stream.addEventListener('ended', function () {
+            // Firefox does not support .onended but it does not support
+            // screensharing either
+            stream.onended = function () {
                 var idx = self.localScreens.indexOf(stream);
                 if (idx > -1) {
                     self.localScreens.splice(idx, 1);
                 }
                 self.emit('localScreenStopped', stream);
-            });
+            };
             self.emit('localScreen', stream);
         }
 
@@ -120,13 +126,8 @@ LocalMedia.prototype.startScreenShare = function (cb) {
 };
 
 LocalMedia.prototype.stopScreenShare = function (stream) {
-    var self = this;
     if (stream) {
         stream.stop();
-        var idx = self.localScreens.indexOf(stream);
-        if (idx > -1) {
-            self.localScreens.splice(idx, 1);
-        }
     } else {
         this.localScreens.forEach(function (stream) {
             stream.stop();
@@ -234,7 +235,7 @@ LocalMedia.prototype.isAudioEnabled = function () {
     var enabled = true;
     this.localStreams.forEach(function (stream) {
         stream.getAudioTracks().forEach(function (track) {
-            enabled &= track.enabled;
+            enabled = enabled && track.enabled;
         });
     });
     return enabled;
@@ -245,7 +246,7 @@ LocalMedia.prototype.isVideoEnabled = function () {
     var enabled = true;
     this.localStreams.forEach(function (stream) {
         stream.getVideoTracks().forEach(function (track) {
-            enabled &= track.enabled;
+            enabled = enabled && track.enabled;
         });
     });
     return enabled;
@@ -262,8 +263,8 @@ Object.defineProperty(LocalMedia.prototype, 'localStream', {
     }
 });
 // fallback for old .localScreen behaviour
-Object.defineProperty(LocalMedia.prototype, 'localScreen', 
-    { get: function () {
+Object.defineProperty(LocalMedia.prototype, 'localScreen', {
+    get: function () {
         return this.localScreens.length > 0 ? this.localScreens[0] : null;
     }
 });

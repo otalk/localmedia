@@ -1,20 +1,27 @@
 var test = require('tape');
 var localMedia = require('../index');
 
+/* tests are BROKEN in Firefox
+ * since the tests rely on .onended
+ * which is not called by Firefox
+ * (and neither is .onended on any track called)
+ */
+
+
 test('test localStream and ended event', function (t) {
     var media = new localMedia();
     media.on('localStream', function (stream) {
-        t.pass('got local stream');
+        t.pass('got local stream', stream);
+    });
+    media.on('localStreamStopped', function(stream) {
+        t.pass('local stream stopped', stream);
+        t.end();
     });
     media.startLocalMedia(null, function (err, stream) {
         if (err) {
             t.fail('startLocalMedia failed', err);
             return;
         }
-        stream.addEventListener('ended', function (event) {
-            t.end();
-        });
-        console.log('tracks', stream.getAudioTracks().length, stream.getVideoTracks().length);
         stream.stop();
     });
 });
@@ -35,14 +42,15 @@ test('test audioonly stream', function (t) {
             t.fail('got video track');
         }
     });
+    media.on('localStreamStopped', function(stream) {
+        t.pass('local stream stopped', stream);
+        t.end();
+    });
     media.startLocalMedia({audio: true, video: false}, function (err, stream) {
         if (err) {
             t.fail('startLocalMedia failed', err);
             return;
         }
-        stream.addEventListener('ended', function (event) {
-            t.end();
-        });
         stream.stop();
     });
 });
@@ -61,14 +69,15 @@ test('test videoonly stream', function (t) {
             t.fail('got no video track');
         }
     });
+    media.on('localStreamStopped', function(stream) {
+        t.pass('local stream stopped', stream);
+        t.end();
+    });
     media.startLocalMedia({audio: false, video: true}, function (err, stream) {
         if (err) {
             t.fail('startLocalMedia failed', err);
             return;
         }
-        stream.addEventListener('ended', function (event) {
-            t.end();
-        });
         stream.stop();
     });
 });
