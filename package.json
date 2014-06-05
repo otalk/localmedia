@@ -16,7 +16,7 @@
     "wildemitter": "^1.0.0",
     "getusermedia": "0.2.x",
     "getscreenmedia": "^1.0.0",
-    "hark": "0.2.x",
+    "hark": "^1.0.0",
     "mediastream-gain": "0.1.x",
     "mockconsole": "0.0.x"
   },
