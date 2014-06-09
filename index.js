@@ -91,6 +91,10 @@ LocalMedia.prototype.stop = function (stream) {
             self.localStreams = self.localStreams.splice(idx, 1);
         }
     } else {
+        if (this.audioMonitor) {
+            this.audioMonitor.stop();
+            delete this.audioMonitor;
+        }
         this.localStreams.forEach(function (stream) {
             stream.stop();
             self.emit('localStreamStopped', stream);
@@ -151,7 +155,7 @@ LocalMedia.prototype.unmute = function () {
 
 LocalMedia.prototype.setupAudioMonitor = function (stream, harkOptions) {
     this._log('Setup audio');
-    var audio = hark(stream, harkOptions);
+    var audio = this.audioMonitor = hark(stream, harkOptions);
     var self = this;
     var timeout;
 
