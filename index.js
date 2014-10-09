@@ -207,11 +207,11 @@ LocalMedia.prototype.resumeVideo = function () {
 
 // Combined controls
 LocalMedia.prototype.pause = function () {
-    this._audioEnabled(false);
+    this.mute();
     this.pauseVideo();
 };
 LocalMedia.prototype.resume = function () {
-    this._audioEnabled(true);
+    this.unmute();
     this.resumeVideo();
 };
 
