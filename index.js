@@ -256,6 +256,17 @@ LocalMedia.prototype.isVideoEnabled = function () {
     return enabled;
 };
 
+// query devices. MediaStreamTrack.getSources might be subject to changes
+LocalMedia.prototype.queryDevices = function (cb) {
+    if (window.MediaStreamTrack && window.MediaStreamTrack.getSources) {
+        window.MediaStreamTrack.getSources(function (sources) {
+            cb(null, sources);
+        });
+    } else {
+        window.setTimeout(0, cb, ['UnavailableError', null]);
+    }
+};
+
 // Backwards Compat
 LocalMedia.prototype.startLocalMedia = LocalMedia.prototype.start;
 LocalMedia.prototype.stopLocalMedia = LocalMedia.prototype.stop;
