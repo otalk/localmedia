@@ -263,7 +263,13 @@ LocalMedia.prototype.queryDevices = function (cb) {
             cb(null, sources);
         });
     } else {
-        window.setTimeout(0, cb, ['UnavailableError', null]);
+        // shim it
+        window.setTimeout(0, function () {
+            cb(null, [
+                { label: '', facing: '', kind: 'audio', id: 'default' },
+                { label: '', facing: '', kind: 'video', id: 'default' },
+            ]);
+        });
     }
 };
 
