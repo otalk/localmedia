@@ -264,12 +264,12 @@ LocalMedia.prototype.queryDevices = function (cb) {
         });
     } else {
         // shim it
-        window.setTimeout(0, function () {
+        window.setTimeout(function () {
             cb(null, [
                 { label: '', facing: '', kind: 'audio', id: 'default' },
                 { label: '', facing: '', kind: 'video', id: 'default' },
             ]);
-        });
+        }, 0);
     }
 };
 
