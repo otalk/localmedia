@@ -260,12 +260,11 @@ LocalMedia.prototype.isVideoEnabled = function () {
 LocalMedia.prototype.queryDevices = function (cb) {
     if (window.MediaStreamTrack && window.MediaStreamTrack.getSources) {
         window.MediaStreamTrack.getSources(function (sources) {
-            cb(null, sources);
+            cb(sources);
         });
-    } else {
-        // shim it
+    } else { // shim it
         window.setTimeout(function () {
-            cb(null, [
+            cb([
                 { label: '', facing: '', kind: 'audio', id: 'default' },
                 { label: '', facing: '', kind: 'video', id: 'default' },
             ]);
