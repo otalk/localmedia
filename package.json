@@ -17,7 +17,7 @@
     "getusermedia": "^1.0.0",
     "getscreenmedia": "^1.0.0",
     "hark": "^1.0.0",
-    "mediastream-gain": "0.1.x",
+    "mediastream-gain": "^1.0.0",
     "mockconsole": "0.0.x"
   },
   "devDependencies": {
