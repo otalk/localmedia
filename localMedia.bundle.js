@@ -277,7 +277,7 @@ Object.defineProperty(LocalMedia.prototype, 'localScreen', {
 
 module.exports = LocalMedia;
 
-},{"getscreenmedia":8,"getusermedia":5,"hark":3,"mediastream-gain":6,"mockconsole":9,"util":2,"webrtcsupport":4,"wildemitter":7}],2:[function(require,module,exports){
+},{"getscreenmedia":6,"getusermedia":5,"hark":4,"mediastream-gain":8,"mockconsole":9,"util":2,"webrtcsupport":3,"wildemitter":7}],2:[function(require,module,exports){
 var events = require('events');
 
 exports.isArray = isArray;
@@ -624,7 +624,7 @@ exports.format = function(f) {
   return str;
 };
 
-},{"events":10}],4:[function(require,module,exports){
+},{"events":10}],3:[function(require,module,exports){
 // created by @HenrikJoreteg
 var prefix;
 var version;
@@ -678,7 +678,7 @@ module.exports = {
 
 },{}],7:[function(require,module,exports){
 /*
-WildEmitter.js is a slim little event emitter by @henrikjoreteg largely based
+WildEmitter.js is a slim little event emitter by @henrikjoreteg largely based 
 on @visionmedia's Emitter from UI Kit.
 
 Why? I wanted it standalone.
@@ -686,14 +686,14 @@ Why? I wanted it standalone.
 I also wanted support for wildcard emitters like this:
 
 emitter.on('*', function (eventName, other, event, payloads) {
-
+    
 });
 
 emitter.on('somenamespace*', function (eventName, payloads) {
-
+    
 });
 
-Please note that callbacks triggered by wildcard registered events also get
+Please note that callbacks triggered by wildcard registered events also get 
 the event name as the first argument.
 */
 module.exports = WildEmitter;
@@ -1167,7 +1167,7 @@ module.exports = function (constraints, cb) {
     });
 };
 
-},{"webrtc-adapter-test":12}],3:[function(require,module,exports){
+},{"webrtc-adapter-test":12}],4:[function(require,module,exports){
 var WildEmitter = require('wildemitter');
 
 function getMaxVolume (analyser, fftBins) {
@@ -1238,7 +1238,7 @@ module.exports = function(stream, options) {
   harker.setInterval = function(i) {
     interval = i;
   };
-
+  
   harker.stop = function() {
     running = false;
     harker.emit('volume_change', -100, threshold);
@@ -1256,12 +1256,12 @@ module.exports = function(stream, options) {
   // and emit events if changed
   var looper = function() {
     setTimeout(function() {
-
+    
       //check if stop has been called
       if(!running) {
         return;
       }
-
+      
       var currentVolume = getMaxVolume(analyser, fftBins);
 
       harker.emit('volume_change', currentVolume, threshold);
@@ -1297,7 +1297,7 @@ module.exports = function(stream, options) {
   return harker;
 }
 
-},{"wildemitter":13}],6:[function(require,module,exports){
+},{"wildemitter":13}],8:[function(require,module,exports){
 var support = require('webrtcsupport');
 
 
@@ -1344,7 +1344,7 @@ GainController.prototype.on = function () {
 
 module.exports = GainController;
 
-},{"webrtcsupport":14}],8:[function(require,module,exports){
+},{"webrtcsupport":14}],6:[function(require,module,exports){
 // getScreenMedia helper by @HenrikJoreteg
 var getUserMedia = require('getusermedia');
 
@@ -1702,8 +1702,41 @@ if (navigator.mozGetUserMedia) {
 
   // The RTCPeerConnection object.
   window.RTCPeerConnection = function(pcConfig, pcConstraints) {
-    return new webkitRTCPeerConnection(pcConfig, pcConstraints);
+    var pc = new webkitRTCPeerConnection(pcConfig, pcConstraints);
+    var origGetStats = pc.getStats.bind(pc);
+    pc.getStats = function(selector, successCallback, errorCallback) { // jshint ignore: line
+      // If selector is a function then we are in the old style stats so just
+      // pass back the original getStats format to avoid breaking old users.
+      if (typeof selector === 'function') {
+        return origGetStats(selector, successCallback);
+      }
+
+      var fixChromeStats = function(response) {
+        var standardReport = {};
+        var reports = response.result();
+        reports.forEach(function(report) {
+          var standardStats = {
+            id: report.id,
+            timestamp: report.timestamp,
+            type: report.type
+          };
+          report.names().forEach(function(name) {
+            standardStats[name] = report.stat(name);
+          });
+          standardReport[standardStats.id] = standardStats;
+        });
+
+        return standardReport;
+      };
+      var successCallbackWrapper = function(response) {
+        successCallback(fixChromeStats(response));
+      };
+      return origGetStats(successCallbackWrapper, selector);
+    };
+
+    return pc;
   };
+
   // add promise support
   ['createOffer', 'createAnswer'].forEach(function(method) {
     var nativeMethod = webkitRTCPeerConnection.prototype[method];
@@ -1870,7 +1903,7 @@ function requestUserMedia(constraints) {
 
 if (typeof module !== 'undefined') {
   module.exports = {
-    RTCPeerConnection: RTCPeerConnection,
+    RTCPeerConnection: window.RTCPeerConnection,
     getUserMedia: getUserMedia,
     attachMediaStream: attachMediaStream,
     reattachMediaStream: reattachMediaStream,
@@ -1880,11 +1913,78 @@ if (typeof module !== 'undefined') {
     //requestUserMedia: not exposed on purpose.
     //trace: not exposed on purpose.
   };
+} else if ((typeof require === 'function') && (typeof define === 'function')) {
+  // Expose objects and functions when RequireJS is doing the loading.
+  define([], function() {
+    return {
+      RTCPeerConnection: window.RTCPeerConnection,
+      getUserMedia: getUserMedia,
+      attachMediaStream: attachMediaStream,
+      reattachMediaStream: reattachMediaStream,
+      webrtcDetectedBrowser: webrtcDetectedBrowser,
+      webrtcDetectedVersion: webrtcDetectedVersion,
+      webrtcMinimumVersion: webrtcMinimumVersion
+      //requestUserMedia: not exposed on purpose.
+      //trace: not exposed on purpose.
+    };
+  });
 }
+
+},{}],14:[function(require,module,exports){
+// created by @HenrikJoreteg
+var prefix;
+var version;
+
+if (window.mozRTCPeerConnection || navigator.mozGetUserMedia) {
+    prefix = 'moz';
+    version = parseInt(navigator.userAgent.match(/Firefox\/([0-9]+)\./)[1], 10);
+} else if (window.webkitRTCPeerConnection || navigator.webkitGetUserMedia) {
+    prefix = 'webkit';
+    version = navigator.userAgent.match(/Chrom(e|ium)/) && parseInt(navigator.userAgent.match(/Chrom(e|ium)\/([0-9]+)\./)[2], 10);
+}
+
+var PC = window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+var IceCandidate = window.mozRTCIceCandidate || window.RTCIceCandidate;
+var SessionDescription = window.mozRTCSessionDescription || window.RTCSessionDescription;
+var MediaStream = window.webkitMediaStream || window.MediaStream;
+var screenSharing = window.location.protocol === 'https:' &&
+    ((prefix === 'webkit' && version >= 26) ||
+     (prefix === 'moz' && version >= 33))
+var AudioContext = window.AudioContext || window.webkitAudioContext;
+var videoEl = document.createElement('video');
+var supportVp8 = videoEl && videoEl.canPlayType && videoEl.canPlayType('video/webm; codecs="vp8", vorbis') === "probably";
+var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.msGetUserMedia || navigator.mozGetUserMedia;
+
+// export support flags and constructors.prototype && PC
+module.exports = {
+    prefix: prefix,
+    browserVersion: version,
+    support: !!PC && supportVp8 && !!getUserMedia,
+    // new support style
+    supportRTCPeerConnection: !!PC,
+    supportVp8: supportVp8,
+    supportGetUserMedia: !!getUserMedia,
+    supportDataChannel: !!(PC && PC.prototype && PC.prototype.createDataChannel),
+    supportWebAudio: !!(AudioContext && AudioContext.prototype.createMediaStreamSource),
+    supportMediaStream: !!(MediaStream && MediaStream.prototype.removeTrack),
+    supportScreenSharing: !!screenSharing,
+    // old deprecated style. Dont use this anymore
+    dataChannel: !!(PC && PC.prototype && PC.prototype.createDataChannel),
+    webAudio: !!(AudioContext && AudioContext.prototype.createMediaStreamSource),
+    mediaStream: !!(MediaStream && MediaStream.prototype.removeTrack),
+    screenSharing: !!screenSharing,
+    // constructors
+    AudioContext: AudioContext,
+    PeerConnection: PC,
+    SessionDescription: SessionDescription,
+    IceCandidate: IceCandidate,
+    MediaStream: MediaStream,
+    getUserMedia: getUserMedia
+};
 
 },{}],13:[function(require,module,exports){
 /*
-WildEmitter.js is a slim little event emitter by @henrikjoreteg largely based
+WildEmitter.js is a slim little event emitter by @henrikjoreteg largely based 
 on @visionmedia's Emitter from UI Kit.
 
 Why? I wanted it standalone.
@@ -1892,14 +1992,14 @@ Why? I wanted it standalone.
 I also wanted support for wildcard emitters like this:
 
 emitter.on('*', function (eventName, other, event, payloads) {
-
+    
 });
 
 emitter.on('somenamespace*', function (eventName, payloads) {
-
+    
 });
 
-Please note that callbacks triggered by wildcard registered events also get
+Please note that callbacks triggered by wildcard registered events also get 
 the event name as the first argument.
 */
 module.exports = WildEmitter;
@@ -2024,58 +2124,6 @@ WildEmitter.prototype.getWildcardCallbacks = function (eventName) {
         }
     }
     return result;
-};
-
-},{}],14:[function(require,module,exports){
-// created by @HenrikJoreteg
-var prefix;
-var version;
-
-if (window.mozRTCPeerConnection || navigator.mozGetUserMedia) {
-    prefix = 'moz';
-    version = parseInt(navigator.userAgent.match(/Firefox\/([0-9]+)\./)[1], 10);
-} else if (window.webkitRTCPeerConnection || navigator.webkitGetUserMedia) {
-    prefix = 'webkit';
-    version = navigator.userAgent.match(/Chrom(e|ium)/) && parseInt(navigator.userAgent.match(/Chrom(e|ium)\/([0-9]+)\./)[2], 10);
-}
-
-var PC = window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
-var IceCandidate = window.mozRTCIceCandidate || window.RTCIceCandidate;
-var SessionDescription = window.mozRTCSessionDescription || window.RTCSessionDescription;
-var MediaStream = window.webkitMediaStream || window.MediaStream;
-var screenSharing = window.location.protocol === 'https:' &&
-    ((prefix === 'webkit' && version >= 26) ||
-     (prefix === 'moz' && version >= 33))
-var AudioContext = window.AudioContext || window.webkitAudioContext;
-var videoEl = document.createElement('video');
-var supportVp8 = videoEl && videoEl.canPlayType && videoEl.canPlayType('video/webm; codecs="vp8", vorbis') === "probably";
-var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.msGetUserMedia || navigator.mozGetUserMedia;
-
-// export support flags and constructors.prototype && PC
-module.exports = {
-    prefix: prefix,
-    browserVersion: version,
-    support: !!PC && supportVp8 && !!getUserMedia,
-    // new support style
-    supportRTCPeerConnection: !!PC,
-    supportVp8: supportVp8,
-    supportGetUserMedia: !!getUserMedia,
-    supportDataChannel: !!(PC && PC.prototype && PC.prototype.createDataChannel),
-    supportWebAudio: !!(AudioContext && AudioContext.prototype.createMediaStreamSource),
-    supportMediaStream: !!(MediaStream && MediaStream.prototype.removeTrack),
-    supportScreenSharing: !!screenSharing,
-    // old deprecated style. Dont use this anymore
-    dataChannel: !!(PC && PC.prototype && PC.prototype.createDataChannel),
-    webAudio: !!(AudioContext && AudioContext.prototype.createMediaStreamSource),
-    mediaStream: !!(MediaStream && MediaStream.prototype.removeTrack),
-    screenSharing: !!screenSharing,
-    // constructors
-    AudioContext: AudioContext,
-    PeerConnection: PC,
-    SessionDescription: SessionDescription,
-    IceCandidate: IceCandidate,
-    MediaStream: MediaStream,
-    getUserMedia: getUserMedia
 };
 
 },{}],15:[function(require,module,exports){
@@ -2347,8 +2395,41 @@ if (navigator.mozGetUserMedia) {
 
   // The RTCPeerConnection object.
   window.RTCPeerConnection = function(pcConfig, pcConstraints) {
-    return new webkitRTCPeerConnection(pcConfig, pcConstraints);
+    var pc = new webkitRTCPeerConnection(pcConfig, pcConstraints);
+    var origGetStats = pc.getStats.bind(pc);
+    pc.getStats = function(selector, successCallback, errorCallback) { // jshint ignore: line
+      // If selector is a function then we are in the old style stats so just
+      // pass back the original getStats format to avoid breaking old users.
+      if (typeof selector === 'function') {
+        return origGetStats(selector, successCallback);
+      }
+
+      var fixChromeStats = function(response) {
+        var standardReport = {};
+        var reports = response.result();
+        reports.forEach(function(report) {
+          var standardStats = {
+            id: report.id,
+            timestamp: report.timestamp,
+            type: report.type
+          };
+          report.names().forEach(function(name) {
+            standardStats[name] = report.stat(name);
+          });
+          standardReport[standardStats.id] = standardStats;
+        });
+
+        return standardReport;
+      };
+      var successCallbackWrapper = function(response) {
+        successCallback(fixChromeStats(response));
+      };
+      return origGetStats(successCallbackWrapper, selector);
+    };
+
+    return pc;
   };
+
   // add promise support
   ['createOffer', 'createAnswer'].forEach(function(method) {
     var nativeMethod = webkitRTCPeerConnection.prototype[method];
@@ -2525,6 +2606,21 @@ if (typeof module !== 'undefined') {
     //requestUserMedia: not exposed on purpose.
     //trace: not exposed on purpose.
   };
+} else if ((typeof require === 'function') && (typeof define === 'function')) {
+  // Expose objects and functions when RequireJS is doing the loading.
+  define([], function() {
+    return {
+      RTCPeerConnection: window.RTCPeerConnection,
+      getUserMedia: getUserMedia,
+      attachMediaStream: attachMediaStream,
+      reattachMediaStream: reattachMediaStream,
+      webrtcDetectedBrowser: webrtcDetectedBrowser,
+      webrtcDetectedVersion: webrtcDetectedVersion,
+      webrtcMinimumVersion: webrtcMinimumVersion
+      //requestUserMedia: not exposed on purpose.
+      //trace: not exposed on purpose.
+    };
+  });
 }
 
 },{}]},{},[1])(1)
