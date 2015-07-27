@@ -84,7 +84,7 @@ LocalMedia.prototype.stop = function (stream) {
     var self = this;
     // FIXME: duplicates cleanup code until fixed in FF
     if (stream) {
-        stream.stop();
+        stream.getTracks().forEach(function (track) { track.stop(); });
         self.emit('localStreamStopped', stream);
         var idx = self.localStreams.indexOf(stream);
         if (idx > -1) {
@@ -96,7 +96,7 @@ LocalMedia.prototype.stop = function (stream) {
             delete this.audioMonitor;
         }
         this.localStreams.forEach(function (stream) {
-            stream.stop();
+            stream.getTracks().forEach(function (track) { track.stop(); });
             self.emit('localStreamStopped', stream);
         });
         this.localStreams = [];
@@ -131,10 +131,10 @@ LocalMedia.prototype.startScreenShare = function (cb) {
 
 LocalMedia.prototype.stopScreenShare = function (stream) {
     if (stream) {
-        stream.stop();
+        stream.getTracks().forEach(function (track) { track.stop(); });
     } else {
         this.localScreens.forEach(function (stream) {
-            stream.stop();
+            stream.getTracks().forEach(function (track) { track.stop(); });
         });
         this.localScreens = [];
     }
