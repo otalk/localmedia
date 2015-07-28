@@ -280,6 +280,23 @@ LocalMedia.prototype.isVideoEnabled = function () {
     return enabled;
 };
 
+// query devices. MediaStreamTrack.getSources might be subject to changes
+// static method, like MediaStreamTrack
+LocalMedia.queryDevices = function (cb) {
+    if (window.MediaStreamTrack && window.MediaStreamTrack.getSources) {
+        window.MediaStreamTrack.getSources(function (sources) {
+            cb(sources);
+        });
+    } else { // shim it
+        window.setTimeout(function () {
+            cb([
+                { label: '', facing: '', kind: 'audio', id: 'default' },
+                { label: '', facing: '', kind: 'video', id: 'default' },
+            ]);
+        }, 0);
+    }
+};
+
 // Backwards Compat
 LocalMedia.prototype.startLocalMedia = LocalMedia.prototype.start;
 LocalMedia.prototype.stopLocalMedia = LocalMedia.prototype.stop;
