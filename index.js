@@ -85,22 +85,34 @@ LocalMedia.prototype.stop = function (stream) {
     // FIXME: duplicates cleanup code until fixed in FF
     if (stream) {
         stream.getTracks().forEach(function (track) { track.stop(); });
-        self.emit('localStreamStopped', stream);
         var idx = self.localStreams.indexOf(stream);
         if (idx > -1) {
+            self.emit('localStreamStopped', stream);
             self.localStreams = self.localStreams.splice(idx, 1);
+        } else {
+            idx = self.localScreens.indexOf(stream);
+            if (idx > -1) {
+                self.emit('localScreenStopped', stream);
+                self.localScreens = self.localScreens.splce(idx, 1);
+            }
         }
     } else {
-        if (this.audioMonitor) {
-            this.audioMonitor.stop();
-            delete this.audioMonitor;
-        }
-        this.localStreams.forEach(function (stream) {
-            stream.getTracks().forEach(function (track) { track.stop(); });
-            self.emit('localStreamStopped', stream);
-        });
-        this.localStreams = [];
+        this.stopStreams();
+        this.stopScreenShare();
     }
+};
+
+LocalMedia.prototype.stopStreams = function () {
+    var self = this;
+    if (this.audioMonitor) {
+        this.audioMonitor.stop();
+        delete this.audioMonitor;
+    }
+    this.localStreams.forEach(function (stream) {
+        stream.getTracks().forEach(function (track) { track.stop(); });
+        self.emit('localStreamStopped', stream);
+    });
+    this.localStreams = [];
 };
 
 LocalMedia.prototype.startScreenShare = function (cb) {
@@ -130,11 +142,14 @@ LocalMedia.prototype.startScreenShare = function (cb) {
 };
 
 LocalMedia.prototype.stopScreenShare = function (stream) {
+    var self = this;
     if (stream) {
         stream.getTracks().forEach(function (track) { track.stop(); });
+        this.emit('localScreenStopped', stream);
     } else {
         this.localScreens.forEach(function (stream) {
             stream.getTracks().forEach(function (track) { track.stop(); });
+            self.emit('localScreenStopped', stream);
         });
         this.localScreens = [];
     }
