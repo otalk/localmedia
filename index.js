@@ -77,7 +77,7 @@ LocalMedia.prototype.start = function (mediaConstraints, cb) {
             self.emit('localStream', stream);
         } else {
             // Fallback for users without a camera
-            if (self.config.audioFallback && err.name === 'DevicesNotFoundError' && constraints.video === true) {
+            if (self.config.audioFallback && err.name === 'DevicesNotFoundError' && constraints.video !== false) {
                 constraints.video = false;
                 self.start(constraints, cb);
                 return;
