@@ -87,22 +87,34 @@ LocalMedia.prototype.stop = function (stream) {
     // FIXME: duplicates cleanup code until fixed in FF
     if (stream) {
         stream.stop();
-        self.emit('localStreamStopped', stream);
         var idx = self.localStreams.indexOf(stream);
         if (idx > -1) {
+            self.emit('localStreamStopped', stream);
             self.localStreams = self.localStreams.splice(idx, 1);
+        } else {
+            idx = self.localScreens.indexOf(stream);
+            if (idx > -1) {
+                self.emit('localScreenStopped', stream);
+                self.localScreens = self.localScreens.splce(idx, 1);
+            }
         }
     } else {
-        if (this.audioMonitor) {
-            this.audioMonitor.stop();
-            delete this.audioMonitor;
-        }
-        this.localStreams.forEach(function (stream) {
-            stream.stop();
-            self.emit('localStreamStopped', stream);
-        });
-        this.localStreams = [];
+        this.stopStreams();
+        this.stopScreenShare();
     }
+};
+
+LocalMedia.prototype.stopStreams = function () {
+    var self = this;
+    if (this.audioMonitor) {
+        this.audioMonitor.stop();
+        delete this.audioMonitor;
+    }
+    this.localStreams.forEach(function (stream) {
+        stream.stop();
+        self.emit('localStreamStopped', stream);
+    });
+    this.localStreams = [];
 };
 
 LocalMedia.prototype.startScreenShare = function (cb) {
@@ -132,11 +144,14 @@ LocalMedia.prototype.startScreenShare = function (cb) {
 };
 
 LocalMedia.prototype.stopScreenShare = function (stream) {
+    var self = this;
     if (stream) {
         stream.stop();
+        this.emit('localScreenStopped', stream);
     } else {
         this.localScreens.forEach(function (stream) {
             stream.stop();
+            self.emit('localScreenStopped', stream);
         });
         this.localScreens = [];
     }
@@ -277,7 +292,7 @@ Object.defineProperty(LocalMedia.prototype, 'localScreen', {
 
 module.exports = LocalMedia;
 
-},{"getscreenmedia":6,"getusermedia":5,"hark":4,"mediastream-gain":8,"mockconsole":9,"util":2,"webrtcsupport":3,"wildemitter":7}],2:[function(require,module,exports){
+},{"getscreenmedia":6,"getusermedia":5,"hark":3,"mediastream-gain":8,"mockconsole":9,"util":2,"webrtcsupport":4,"wildemitter":7}],2:[function(require,module,exports){
 var events = require('events');
 
 exports.isArray = isArray;
@@ -624,7 +639,7 @@ exports.format = function(f) {
   return str;
 };
 
-},{"events":10}],3:[function(require,module,exports){
+},{"events":10}],4:[function(require,module,exports){
 // created by @HenrikJoreteg
 var prefix;
 var version;
@@ -1167,7 +1182,7 @@ module.exports = function (constraints, cb) {
     });
 };
 
-},{"webrtc-adapter-test":12}],4:[function(require,module,exports){
+},{"webrtc-adapter-test":12}],3:[function(require,module,exports){
 var WildEmitter = require('wildemitter');
 
 function getMaxVolume (analyser, fftBins) {
@@ -1344,179 +1359,7 @@ GainController.prototype.on = function () {
 
 module.exports = GainController;
 
-},{"webrtcsupport":14}],6:[function(require,module,exports){
-// getScreenMedia helper by @HenrikJoreteg
-var getUserMedia = require('getusermedia');
-
-// cache for constraints and callback
-var cache = {};
-
-module.exports = function (constraints, cb) {
-    var hasConstraints = arguments.length === 2;
-    var callback = hasConstraints ? cb : constraints;
-    var error;
-
-    if (typeof window === 'undefined' || window.location.protocol === 'http:') {
-        error = new Error('NavigatorUserMediaError');
-        error.name = 'HTTPS_REQUIRED';
-        return callback(error);
-    }
-
-    if (window.navigator.userAgent.match('Chrome')) {
-        var chromever = parseInt(window.navigator.userAgent.match(/Chrome\/(.*) /)[1], 10);
-        var maxver = 33;
-        var isCef = !window.chrome.webstore;
-        // "known" crash in chrome 34 and 35 on linux
-        if (window.navigator.userAgent.match('Linux')) maxver = 35;
-
-        // check that the extension is installed by looking for a
-        // sessionStorage variable that contains the extension id
-        // this has to be set after installation unless the contest
-        // script does that
-        if (sessionStorage.getScreenMediaJSExtensionId) {
-            chrome.runtime.sendMessage(sessionStorage.getScreenMediaJSExtensionId,
-                {type:'getScreen', id: 1}, null,
-                function (data) {
-                    if (data.sourceId === '') { // user canceled
-                        var error = new Error('NavigatorUserMediaError');
-                        error.name = 'PERMISSION_DENIED';
-                        callback(error);
-                    } else {
-                        constraints = (hasConstraints && constraints) || {audio: false, video: {
-                            mandatory: {
-                                chromeMediaSource: 'desktop',
-                                maxWidth: window.screen.width,
-                                maxHeight: window.screen.height,
-                                maxFrameRate: 3
-                            },
-                            optional: [
-                                {googLeakyBucket: true},
-                                {googTemporalLayeredScreencast: true}
-                            ]
-                        }};
-                        constraints.video.mandatory.chromeMediaSourceId = data.sourceId;
-                        getUserMedia(constraints, callback);
-                    }
-                }
-            );
-        } else if (window.cefGetScreenMedia) {
-            //window.cefGetScreenMedia is experimental - may be removed without notice
-            window.cefGetScreenMedia(function(sourceId) {
-                if (!sourceId) {
-                    var error = new Error('cefGetScreenMediaError');
-                    error.name = 'CEF_GETSCREENMEDIA_CANCELED';
-                    callback(error);
-                } else {
-                    constraints = (hasConstraints && constraints) || {audio: false, video: {
-                        mandatory: {
-                            chromeMediaSource: 'desktop',
-                            maxWidth: window.screen.width,
-                            maxHeight: window.screen.height,
-                            maxFrameRate: 3
-                        },
-                        optional: [
-                            {googLeakyBucket: true},
-                            {googTemporalLayeredScreencast: true}
-                        ]
-                    }};
-                    constraints.video.mandatory.chromeMediaSourceId = sourceId;
-                    getUserMedia(constraints, callback);
-                }
-            });
-        } else if (isCef || (chromever >= 26 && chromever <= maxver)) {
-            // chrome 26 - chrome 33 way to do it -- requires bad chrome://flags
-            // note: this is basically in maintenance mode and will go away soon
-            constraints = (hasConstraints && constraints) || {
-                video: {
-                    mandatory: {
-                        googLeakyBucket: true,
-                        maxWidth: window.screen.width,
-                        maxHeight: window.screen.height,
-                        maxFrameRate: 3,
-                        chromeMediaSource: 'screen'
-                    }
-                }
-            };
-            getUserMedia(constraints, callback);
-        } else {
-            // chrome 34+ way requiring an extension
-            var pending = window.setTimeout(function () {
-                error = new Error('NavigatorUserMediaError');
-                error.name = 'EXTENSION_UNAVAILABLE';
-                return callback(error);
-            }, 1000);
-            cache[pending] = [callback, hasConstraints ? constraint : null];
-            window.postMessage({ type: 'getScreen', id: pending }, '*');
-        }
-    } else if (window.navigator.userAgent.match('Firefox')) {
-        var ffver = parseInt(window.navigator.userAgent.match(/Firefox\/(.*)/)[1], 10);
-        if (ffver >= 33) {
-            constraints = (hasConstraints && constraints) || {
-                video: {
-                    mozMediaSource: 'window',
-                    mediaSource: 'window'
-                }
-            }
-            getUserMedia(constraints, function (err, stream) {
-                callback(err, stream);
-                // workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=1045810
-                if (!err) {
-                    var lastTime = stream.currentTime;
-                    var polly = window.setInterval(function () {
-                        if (!stream) window.clearInterval(polly);
-                        if (stream.currentTime == lastTime) {
-                            window.clearInterval(polly);
-                            if (stream.onended) {
-                                stream.onended();
-                            }
-                        }
-                        lastTime = stream.currentTime;
-                    }, 500);
-                }
-            });
-        } else {
-            error = new Error('NavigatorUserMediaError');
-            error.name = 'EXTENSION_UNAVAILABLE'; // does not make much sense but...
-        }
-    }
-};
-
-window.addEventListener('message', function (event) {
-    if (event.origin != window.location.origin) {
-        return;
-    }
-    if (event.data.type == 'gotScreen' && cache[event.data.id]) {
-        var data = cache[event.data.id];
-        var constraints = data[1];
-        var callback = data[0];
-        delete cache[event.data.id];
-
-        if (event.data.sourceId === '') { // user canceled
-            var error = new Error('NavigatorUserMediaError');
-            error.name = 'PERMISSION_DENIED';
-            callback(error);
-        } else {
-            constraints = constraints || {audio: false, video: {
-                mandatory: {
-                    chromeMediaSource: 'desktop',
-                    maxWidth: window.screen.width,
-                    maxHeight: window.screen.height,
-                    maxFrameRate: 3
-                },
-                optional: [
-                    {googLeakyBucket: true},
-                    {googTemporalLayeredScreencast: true}
-                ]
-            }};
-            constraints.video.mandatory.chromeMediaSourceId = event.data.sourceId;
-            getUserMedia(constraints, callback);
-        }
-    } else if (event.data.type == 'getScreenPending') {
-        window.clearTimeout(event.data.id);
-    }
-});
-
-},{"getusermedia":15}],12:[function(require,module,exports){
+},{"webrtcsupport":14}],12:[function(require,module,exports){
 /*
  *  Copyright (c) 2014 The WebRTC project authors. All Rights Reserved.
  *
@@ -1930,59 +1773,179 @@ if (typeof module !== 'undefined') {
   });
 }
 
-},{}],14:[function(require,module,exports){
-// created by @HenrikJoreteg
-var prefix;
-var version;
+},{}],6:[function(require,module,exports){
+// getScreenMedia helper by @HenrikJoreteg
+var getUserMedia = require('getusermedia');
 
-if (window.mozRTCPeerConnection || navigator.mozGetUserMedia) {
-    prefix = 'moz';
-    version = parseInt(navigator.userAgent.match(/Firefox\/([0-9]+)\./)[1], 10);
-} else if (window.webkitRTCPeerConnection || navigator.webkitGetUserMedia) {
-    prefix = 'webkit';
-    version = navigator.userAgent.match(/Chrom(e|ium)/) && parseInt(navigator.userAgent.match(/Chrom(e|ium)\/([0-9]+)\./)[2], 10);
-}
+// cache for constraints and callback
+var cache = {};
 
-var PC = window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
-var IceCandidate = window.mozRTCIceCandidate || window.RTCIceCandidate;
-var SessionDescription = window.mozRTCSessionDescription || window.RTCSessionDescription;
-var MediaStream = window.webkitMediaStream || window.MediaStream;
-var screenSharing = window.location.protocol === 'https:' &&
-    ((prefix === 'webkit' && version >= 26) ||
-     (prefix === 'moz' && version >= 33))
-var AudioContext = window.AudioContext || window.webkitAudioContext;
-var videoEl = document.createElement('video');
-var supportVp8 = videoEl && videoEl.canPlayType && videoEl.canPlayType('video/webm; codecs="vp8", vorbis') === "probably";
-var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.msGetUserMedia || navigator.mozGetUserMedia;
+module.exports = function (constraints, cb) {
+    var hasConstraints = arguments.length === 2;
+    var callback = hasConstraints ? cb : constraints;
+    var error;
 
-// export support flags and constructors.prototype && PC
-module.exports = {
-    prefix: prefix,
-    browserVersion: version,
-    support: !!PC && supportVp8 && !!getUserMedia,
-    // new support style
-    supportRTCPeerConnection: !!PC,
-    supportVp8: supportVp8,
-    supportGetUserMedia: !!getUserMedia,
-    supportDataChannel: !!(PC && PC.prototype && PC.prototype.createDataChannel),
-    supportWebAudio: !!(AudioContext && AudioContext.prototype.createMediaStreamSource),
-    supportMediaStream: !!(MediaStream && MediaStream.prototype.removeTrack),
-    supportScreenSharing: !!screenSharing,
-    // old deprecated style. Dont use this anymore
-    dataChannel: !!(PC && PC.prototype && PC.prototype.createDataChannel),
-    webAudio: !!(AudioContext && AudioContext.prototype.createMediaStreamSource),
-    mediaStream: !!(MediaStream && MediaStream.prototype.removeTrack),
-    screenSharing: !!screenSharing,
-    // constructors
-    AudioContext: AudioContext,
-    PeerConnection: PC,
-    SessionDescription: SessionDescription,
-    IceCandidate: IceCandidate,
-    MediaStream: MediaStream,
-    getUserMedia: getUserMedia
+    if (typeof window === 'undefined' || window.location.protocol === 'http:') {
+        error = new Error('NavigatorUserMediaError');
+        error.name = 'HTTPS_REQUIRED';
+        return callback(error);
+    }
+
+    if (window.navigator.userAgent.match('Chrome')) {
+        var chromever = parseInt(window.navigator.userAgent.match(/Chrome\/(.*) /)[1], 10);
+        var maxver = 33;
+        var isCef = !window.chrome.webstore;
+        // "known" crash in chrome 34 and 35 on linux
+        if (window.navigator.userAgent.match('Linux')) maxver = 35;
+
+        // check that the extension is installed by looking for a
+        // sessionStorage variable that contains the extension id
+        // this has to be set after installation unless the contest
+        // script does that
+        if (sessionStorage.getScreenMediaJSExtensionId) {
+            chrome.runtime.sendMessage(sessionStorage.getScreenMediaJSExtensionId,
+                {type:'getScreen', id: 1}, null,
+                function (data) {
+                    if (data.sourceId === '') { // user canceled
+                        var error = new Error('NavigatorUserMediaError');
+                        error.name = 'PERMISSION_DENIED';
+                        callback(error);
+                    } else {
+                        constraints = (hasConstraints && constraints) || {audio: false, video: {
+                            mandatory: {
+                                chromeMediaSource: 'desktop',
+                                maxWidth: window.screen.width,
+                                maxHeight: window.screen.height,
+                                maxFrameRate: 3
+                            },
+                            optional: [
+                                {googLeakyBucket: true},
+                                {googTemporalLayeredScreencast: true}
+                            ]
+                        }};
+                        constraints.video.mandatory.chromeMediaSourceId = data.sourceId;
+                        getUserMedia(constraints, callback);
+                    }
+                }
+            );
+        } else if (window.cefGetScreenMedia) {
+            //window.cefGetScreenMedia is experimental - may be removed without notice
+            window.cefGetScreenMedia(function(sourceId) {
+                if (!sourceId) {
+                    var error = new Error('cefGetScreenMediaError');
+                    error.name = 'CEF_GETSCREENMEDIA_CANCELED';
+                    callback(error);
+                } else {
+                    constraints = (hasConstraints && constraints) || {audio: false, video: {
+                        mandatory: {
+                            chromeMediaSource: 'desktop',
+                            maxWidth: window.screen.width,
+                            maxHeight: window.screen.height,
+                            maxFrameRate: 3
+                        },
+                        optional: [
+                            {googLeakyBucket: true},
+                            {googTemporalLayeredScreencast: true}
+                        ]
+                    }};
+                    constraints.video.mandatory.chromeMediaSourceId = sourceId;
+                    getUserMedia(constraints, callback);
+                }
+            });
+        } else if (isCef || (chromever >= 26 && chromever <= maxver)) {
+            // chrome 26 - chrome 33 way to do it -- requires bad chrome://flags
+            // note: this is basically in maintenance mode and will go away soon
+            constraints = (hasConstraints && constraints) || {
+                video: {
+                    mandatory: {
+                        googLeakyBucket: true,
+                        maxWidth: window.screen.width,
+                        maxHeight: window.screen.height,
+                        maxFrameRate: 3,
+                        chromeMediaSource: 'screen'
+                    }
+                }
+            };
+            getUserMedia(constraints, callback);
+        } else {
+            // chrome 34+ way requiring an extension
+            var pending = window.setTimeout(function () {
+                error = new Error('NavigatorUserMediaError');
+                error.name = 'EXTENSION_UNAVAILABLE';
+                return callback(error);
+            }, 1000);
+            cache[pending] = [callback, hasConstraints ? constraint : null];
+            window.postMessage({ type: 'getScreen', id: pending }, '*');
+        }
+    } else if (window.navigator.userAgent.match('Firefox')) {
+        var ffver = parseInt(window.navigator.userAgent.match(/Firefox\/(.*)/)[1], 10);
+        if (ffver >= 33) {
+            constraints = (hasConstraints && constraints) || {
+                video: {
+                    mozMediaSource: 'window',
+                    mediaSource: 'window'
+                }
+            }
+            getUserMedia(constraints, function (err, stream) {
+                callback(err, stream);
+                // workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=1045810
+                if (!err) {
+                    var lastTime = stream.currentTime;
+                    var polly = window.setInterval(function () {
+                        if (!stream) window.clearInterval(polly);
+                        if (stream.currentTime == lastTime) {
+                            window.clearInterval(polly);
+                            if (stream.onended) {
+                                stream.onended();
+                            }
+                        }
+                        lastTime = stream.currentTime;
+                    }, 500);
+                }
+            });
+        } else {
+            error = new Error('NavigatorUserMediaError');
+            error.name = 'EXTENSION_UNAVAILABLE'; // does not make much sense but...
+        }
+    }
 };
 
-},{}],13:[function(require,module,exports){
+window.addEventListener('message', function (event) {
+    if (event.origin != window.location.origin) {
+        return;
+    }
+    if (event.data.type == 'gotScreen' && cache[event.data.id]) {
+        var data = cache[event.data.id];
+        var constraints = data[1];
+        var callback = data[0];
+        delete cache[event.data.id];
+
+        if (event.data.sourceId === '') { // user canceled
+            var error = new Error('NavigatorUserMediaError');
+            error.name = 'PERMISSION_DENIED';
+            callback(error);
+        } else {
+            constraints = constraints || {audio: false, video: {
+                mandatory: {
+                    chromeMediaSource: 'desktop',
+                    maxWidth: window.screen.width,
+                    maxHeight: window.screen.height,
+                    maxFrameRate: 3
+                },
+                optional: [
+                    {googLeakyBucket: true},
+                    {googTemporalLayeredScreencast: true}
+                ]
+            }};
+            constraints.video.mandatory.chromeMediaSourceId = event.data.sourceId;
+            getUserMedia(constraints, callback);
+        }
+    } else if (event.data.type == 'getScreenPending') {
+        window.clearTimeout(event.data.id);
+    }
+});
+
+},{"getusermedia":15}],13:[function(require,module,exports){
 /*
 WildEmitter.js is a slim little event emitter by @henrikjoreteg largely based 
 on @visionmedia's Emitter from UI Kit.
@@ -2124,6 +2087,58 @@ WildEmitter.prototype.getWildcardCallbacks = function (eventName) {
         }
     }
     return result;
+};
+
+},{}],14:[function(require,module,exports){
+// created by @HenrikJoreteg
+var prefix;
+var version;
+
+if (window.mozRTCPeerConnection || navigator.mozGetUserMedia) {
+    prefix = 'moz';
+    version = parseInt(navigator.userAgent.match(/Firefox\/([0-9]+)\./)[1], 10);
+} else if (window.webkitRTCPeerConnection || navigator.webkitGetUserMedia) {
+    prefix = 'webkit';
+    version = navigator.userAgent.match(/Chrom(e|ium)/) && parseInt(navigator.userAgent.match(/Chrom(e|ium)\/([0-9]+)\./)[2], 10);
+}
+
+var PC = window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+var IceCandidate = window.mozRTCIceCandidate || window.RTCIceCandidate;
+var SessionDescription = window.mozRTCSessionDescription || window.RTCSessionDescription;
+var MediaStream = window.webkitMediaStream || window.MediaStream;
+var screenSharing = window.location.protocol === 'https:' &&
+    ((prefix === 'webkit' && version >= 26) ||
+     (prefix === 'moz' && version >= 33))
+var AudioContext = window.AudioContext || window.webkitAudioContext;
+var videoEl = document.createElement('video');
+var supportVp8 = videoEl && videoEl.canPlayType && videoEl.canPlayType('video/webm; codecs="vp8", vorbis') === "probably";
+var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.msGetUserMedia || navigator.mozGetUserMedia;
+
+// export support flags and constructors.prototype && PC
+module.exports = {
+    prefix: prefix,
+    browserVersion: version,
+    support: !!PC && supportVp8 && !!getUserMedia,
+    // new support style
+    supportRTCPeerConnection: !!PC,
+    supportVp8: supportVp8,
+    supportGetUserMedia: !!getUserMedia,
+    supportDataChannel: !!(PC && PC.prototype && PC.prototype.createDataChannel),
+    supportWebAudio: !!(AudioContext && AudioContext.prototype.createMediaStreamSource),
+    supportMediaStream: !!(MediaStream && MediaStream.prototype.removeTrack),
+    supportScreenSharing: !!screenSharing,
+    // old deprecated style. Dont use this anymore
+    dataChannel: !!(PC && PC.prototype && PC.prototype.createDataChannel),
+    webAudio: !!(AudioContext && AudioContext.prototype.createMediaStreamSource),
+    mediaStream: !!(MediaStream && MediaStream.prototype.removeTrack),
+    screenSharing: !!screenSharing,
+    // constructors
+    AudioContext: AudioContext,
+    PeerConnection: PC,
+    SessionDescription: SessionDescription,
+    IceCandidate: IceCandidate,
+    MediaStream: MediaStream,
+    getUserMedia: getUserMedia
 };
 
 },{}],15:[function(require,module,exports){
