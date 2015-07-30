@@ -49,42 +49,47 @@ LocalMedia.prototype.start = function (mediaConstraints, cb) {
     var constraints = mediaConstraints || this.config.media;
 
     getUserMedia(constraints, function (err, stream) {
-
-        if (!err) {
-            if (constraints.audio && self.config.detectSpeakingEvents) {
-                self.setupAudioMonitor(stream, self.config.harkOptions);
-            }
-            self.localStreams.push(stream);
-
-            if (self.config.autoAdjustMic) {
-                self.gainController = new GainController(stream);
-                // start out somewhat muted if we can track audio
-                self.setMicIfEnabled(0.5);
-            }
-
-            // TODO: might need to migrate to the video tracks onended
-            // FIXME: firefox does not seem to trigger this...
-            stream.onended = function () {
-                /*
-                var idx = self.localStreams.indexOf(stream);
-                if (idx > -1) {
-                    self.localScreens.splice(idx, 1);
-                }
-                self.emit('localStreamStopped', stream);
-                */
-            };
-
-            self.emit('localStream', stream);
-        } else {
+        if (err) {
             // Fallback for users without a camera
             if (self.config.audioFallback && err.name === 'DevicesNotFoundError' && constraints.video !== false) {
                 constraints.video = false;
                 self.start(constraints, cb);
                 return;
             }
+
+            if (cb) {
+                cb(err, stream);
+            }
+            return;
         }
+
+        if (constraints.audio && self.config.detectSpeakingEvents && stream.getAudioTracks().length) {
+            self.setupAudioMonitor(stream, self.config.harkOptions);
+        }
+        self.localStreams.push(stream);
+
+        if (constraints.audio && self.config.autoAdjustMic && stream.getAudioTracks().length) {
+            self.gainController = new GainController(stream);
+            // start out somewhat muted if we can track audio
+            self.setMicIfEnabled(0.5);
+        }
+
+        // TODO: might need to migrate to the video tracks onended
+        // FIXME: firefox does not seem to trigger this...
+        stream.onended = function () {
+            /*
+             var idx = self.localStreams.indexOf(stream);
+             if (idx > -1) {
+             self.localScreens.splice(idx, 1);
+             }
+             self.emit('localStreamStopped', stream);
+             */
+        };
+
+        self.emit('localStream', stream);
+
         if (cb) {
-            return cb(err, stream);
+            cb(err, stream);
         }
     });
 };
