@@ -14,6 +14,7 @@ function LocalMedia(opts) {
     var config = this.config = {
         autoAdjustMic: false,
         detectSpeakingEvents: true,
+        audioFallback: false,
         media: {
             audio: true,
             video: true
@@ -48,6 +49,7 @@ LocalMedia.prototype.start = function (mediaConstraints, cb) {
     var constraints = mediaConstraints || this.config.media;
 
     getUserMedia(constraints, function (err, stream) {
+
         if (!err) {
             if (constraints.audio && self.config.detectSpeakingEvents) {
                 self.setupAudioMonitor(stream, self.config.harkOptions);
@@ -73,6 +75,13 @@ LocalMedia.prototype.start = function (mediaConstraints, cb) {
             };
 
             self.emit('localStream', stream);
+        } else {
+            // Fallback for users without a camera
+            if (self.config.audioFallback && err.name === 'DevicesNotFoundError' && constraints.video !== false) {
+                constraints.video = false;
+                self.start(constraints, cb);
+                return;
+            }
         }
         if (cb) {
             return cb(err, stream);
@@ -84,7 +93,7 @@ LocalMedia.prototype.stop = function (stream) {
     var self = this;
     // FIXME: duplicates cleanup code until fixed in FF
     if (stream) {
-        stream.stop();
+        stream.getTracks().forEach(function (track) { track.stop(); });
         var idx = self.localStreams.indexOf(stream);
         if (idx > -1) {
             self.emit('localStreamStopped', stream);
@@ -109,7 +118,7 @@ LocalMedia.prototype.stopStreams = function () {
         delete this.audioMonitor;
     }
     this.localStreams.forEach(function (stream) {
-        stream.stop();
+        stream.getTracks().forEach(function (track) { track.stop(); });
         self.emit('localStreamStopped', stream);
     });
     this.localStreams = [];
@@ -144,11 +153,11 @@ LocalMedia.prototype.startScreenShare = function (cb) {
 LocalMedia.prototype.stopScreenShare = function (stream) {
     var self = this;
     if (stream) {
-        stream.stop();
+        stream.getTracks().forEach(function (track) { track.stop(); });
         this.emit('localScreenStopped', stream);
     } else {
         this.localScreens.forEach(function (stream) {
-            stream.stop();
+            stream.getTracks().forEach(function (track) { track.stop(); });
             self.emit('localScreenStopped', stream);
         });
         this.localScreens = [];
