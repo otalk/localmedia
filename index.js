@@ -102,7 +102,7 @@ LocalMedia.prototype.stop = function (stream) {
             idx = self.localScreens.indexOf(stream);
             if (idx > -1) {
                 self.emit('localScreenStopped', stream);
-                self.localScreens = self.localScreens.splce(idx, 1);
+                self.localScreens = self.localScreens.splice(idx, 1);
             }
         }
     } else {
