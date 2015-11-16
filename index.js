@@ -13,7 +13,7 @@ function LocalMedia(opts) {
 
     var config = this.config = {
         autoAdjustMic: false,
-        detectSpeakingEvents: true,
+        detectSpeakingEvents: false,
         audioFallback: false,
         media: {
             audio: true,
