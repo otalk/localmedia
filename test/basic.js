@@ -1,5 +1,5 @@
 var test = require('tape');
-var localMedia = require('../index');
+var LocalMedia = require('../index');
 
 /* tests are BROKEN in Firefox
  * since the tests rely on .onended
@@ -9,7 +9,7 @@ var localMedia = require('../index');
 
 
 test('test localStream and ended event', function (t) {
-    var media = new localMedia();
+    var media = new LocalMedia();
     media.on('localStream', function (stream) {
         t.pass('got local stream', stream);
     });
@@ -28,7 +28,7 @@ test('test localStream and ended event', function (t) {
 
 // check constraints are working as intended
 test('test audioonly stream', function (t) {
-    var media = new localMedia();
+    var media = new LocalMedia();
     media.on('localStream', function (stream) {
         t.pass('got local stream');
         if (stream.getAudioTracks().length > 0) {
@@ -55,7 +55,7 @@ test('test audioonly stream', function (t) {
     });
 });
 test('test videoonly stream', function (t) {
-    var media = new localMedia();
+    var media = new LocalMedia();
     media.on('localStream', function (stream) {
         t.pass('got local stream');
         if (stream.getAudioTracks().length === 0) {
