@@ -1,6 +1,6 @@
 var util = require('util');
 var hark = require('hark');
-var webrtc = require('webrtcsupport');
+var webrtcSupport = require('webrtcsupport');
 var getUserMedia = require('getusermedia');
 var getScreenMedia = require('getscreenmedia');
 var WildEmitter = require('wildemitter');
@@ -31,12 +31,12 @@ function LocalMedia(opts) {
     this._log = this.logger.log.bind(this.logger, 'LocalMedia:');
     this._logerror = this.logger.error.bind(this.logger, 'LocalMedia:');
 
-    this.screenSharingSupport = webrtc.screenSharing;
+    this.screenSharingSupport = webrtcSupport.screenSharing;
 
     this.localStreams = [];
     this.localScreens = [];
 
-    if (!webrtc.support) {
+    if (!webrtcSupport.supportGetUserMedia) {
         this._logerror('Your browser does not support local media capture.');
     }
 }
