@@ -31,7 +31,7 @@ function LocalMedia(opts) {
     this._log = this.logger.log.bind(this.logger, 'LocalMedia:');
     this._logerror = this.logger.error.bind(this.logger, 'LocalMedia:');
 
-    this.screenSharingSupport = webrtcSupport.screenSharing;
+    this.screenSharingSupport = webrtcSupport.supportScreenSharing;
 
     this.localStreams = [];
     this.localScreens = [];

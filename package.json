@@ -7,7 +7,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git@github.com:legastero/localmedia.git"
+    "url": "git@github.com:otalk/localmedia.git"
   },
   "main": "index.js",
   "description": "WebRTC abstraction for managing local media streams.",
@@ -21,8 +21,16 @@
     "mockconsole": "0.0.x"
   },
   "devDependencies": {
-    "precommit-hook": "^1.0.0",
-    "browserify": "2.22.0"
+    "precommit-hook": "^3.0.0",
+    "browserify": "^13.0.1"
   },
-  "scripts": {}
+  "scripts": {
+    "lint": "jshint .",
+    "validate": "npm ls"
+  },
+  "pre-commit": [
+    "lint",
+    "validate",
+    "test"
+  ]
 }
