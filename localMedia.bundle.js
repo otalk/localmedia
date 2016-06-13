@@ -32,7 +32,7 @@ function LocalMedia(opts) {
     this._log = this.logger.log.bind(this.logger, 'LocalMedia:');
     this._logerror = this.logger.error.bind(this.logger, 'LocalMedia:');
 
-    this.screenSharingSupport = webrtcSupport.screenSharing;
+    this.screenSharingSupport = webrtcSupport.supportScreenSharing;
 
     this.localStreams = [];
     this.localScreens = [];
@@ -91,19 +91,18 @@ LocalMedia.prototype.start = function (mediaConstraints, cb) {
 };
 
 LocalMedia.prototype.stop = function (stream) {
-    var self = this;
     // FIXME: duplicates cleanup code until fixed in FF
     if (stream) {
         stream.getTracks().forEach(function (track) { track.stop(); });
-        var idx = self.localStreams.indexOf(stream);
+        var idx = this.localStreams.indexOf(stream);
         if (idx > -1) {
-            self.emit('localStreamStopped', stream);
-            self.localStreams = self.localStreams.splice(idx, 1);
+            this.emit('localStreamStopped', stream);
+            this.localStreams.splice(idx, 1);
         } else {
-            idx = self.localScreens.indexOf(stream);
+            idx = this.localScreens.indexOf(stream);
             if (idx > -1) {
-                self.emit('localScreenStopped', stream);
-                self.localScreens = self.localScreens.splice(idx, 1);
+                this.emit('localScreenStopped', stream);
+                this.localScreens.splice(idx, 1);
             }
         }
     } else {
@@ -155,7 +154,11 @@ LocalMedia.prototype.stopScreenShare = function (stream) {
     var self = this;
     if (stream) {
         stream.getTracks().forEach(function (track) { track.stop(); });
-        this.emit('localScreenStopped', stream);
+        var idx = this.localScreens.indexOf(stream);
+        if (idx > -1) {
+            this.emit('localScreenStopped', stream);
+            this.localScreens.splice(idx, 1);
+        }
     } else {
         this.localScreens.forEach(function (stream) {
             stream.getTracks().forEach(function (track) { track.stop(); });
