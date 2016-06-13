@@ -1,5 +1,5 @@
-var bundle = require('browserify')();
+var bundle = require('browserify')({ standalone: 'LocalMedia' });
 var fs = require('fs');
 
 bundle.add('./index');
-bundle.bundle({standalone: 'LocalMedia'}).pipe(fs.createWriteStream('localMedia.bundle.js'));
+bundle.bundle().pipe(fs.createWriteStream('localMedia.bundle.js'));
