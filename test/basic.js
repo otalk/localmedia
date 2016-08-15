@@ -1,5 +1,5 @@
 var test = require('tape');
-var LocalMedia = require('../index');
+var LocalMedia = require('../localmedia');
 
 /* tests are BROKEN in Firefox
  * since the tests rely on .onended
@@ -8,7 +8,7 @@ var LocalMedia = require('../index');
  */
 
 
-test('test localStream and ended event', function (t) {
+test('test localStream and localStreamStopped event', function (t) {
     var media = new LocalMedia();
     media.on('localStream', function (stream) {
         t.pass('got local stream', stream);
@@ -17,17 +17,19 @@ test('test localStream and ended event', function (t) {
         t.pass('local stream stopped', stream);
         t.end();
     });
-    media.startLocalMedia(null, function (err, stream) {
+
+    media.start(null, function (err, stream) {
         if (err) {
-            t.fail('startLocalMedia failed', err);
+            t.fail('start failed', err);
             return;
         }
-        stream.stop();
+
+        stream.getTracks().forEach(function (track) { track.stop(); });
     });
 });
 
 // check constraints are working as intended
-test('test audioonly stream', function (t) {
+test('test audio-only stream', function (t) {
     var media = new LocalMedia();
     media.on('localStream', function (stream) {
         t.pass('got local stream');
@@ -46,15 +48,17 @@ test('test audioonly stream', function (t) {
         t.pass('local stream stopped', stream);
         t.end();
     });
-    media.startLocalMedia({audio: true, video: false}, function (err, stream) {
+
+    media.start({audio: true, video: false}, function (err, stream) {
         if (err) {
-            t.fail('startLocalMedia failed', err);
+            t.fail('start failed', err);
             return;
         }
-        stream.stop();
+
+        stream.getTracks().forEach(function (track) { track.stop(); });
     });
 });
-test('test videoonly stream', function (t) {
+test('test video-only stream', function (t) {
     var media = new LocalMedia();
     media.on('localStream', function (stream) {
         t.pass('got local stream');
@@ -73,11 +77,33 @@ test('test videoonly stream', function (t) {
         t.pass('local stream stopped', stream);
         t.end();
     });
-    media.startLocalMedia({audio: false, video: true}, function (err, stream) {
+
+    media.start({audio: false, video: true}, function (err, stream) {
         if (err) {
-            t.fail('startLocalMedia failed', err);
+            t.fail('start failed', err);
             return;
         }
-        stream.stop();
+
+        stream.getTracks().forEach(function (track) { track.stop(); });
+    });
+});
+
+test('test stop method', function (t) {
+    var media = new LocalMedia();
+    media.on('localStream', function (stream) {
+        t.pass('got local stream', stream);
+    });
+    media.on('localStreamStopped', function(stream) {
+        t.pass('local stream stopped', stream);
+        t.end();
+    });
+
+    media.start(null, function (err, stream) {
+        if (err) {
+            t.fail('start failed', err);
+            return;
+        }
+
+        media.stop(stream);
     });
 });
