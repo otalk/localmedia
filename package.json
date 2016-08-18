@@ -1,28 +1,37 @@
 {
   "name": "localmedia",
-  "version": "2.1.1",
+  "version": "3.0.0",
+  "license": "ISC",
+  "homepage": "https://github.com/otalk/localmedia#readme",
+  "bugs": {
+    "url": "https://github.com/otalk/localmedia/issues"
+  },
   "keywords": [
     "webrtc",
-    "browser"
+    "browser",
+    "getUserMedia"
   ],
   "repository": {
     "type": "git",
-    "url": "git@github.com:otalk/localmedia.git"
+    "url": "git+ssh://git@github.com/otalk/localmedia.git"
   },
-  "main": "index.js",
+  "main": "localmedia.js",
   "description": "WebRTC abstraction for managing local media streams.",
   "dependencies": {
-    "webrtcsupport": "^2.2.0",
+    "webrtc-adapter": "^2.0.2",
     "wildemitter": "^1.0.0",
-    "getusermedia": "^1.0.0",
     "getscreenmedia": "^1.0.0",
     "hark": "^1.0.0",
-    "mediastream-gain": "^1.0.0",
     "mockconsole": "0.0.x"
   },
   "devDependencies": {
+    "browserify": "^13.1.0",
+    "jshint": "^2.9.2",
     "precommit-hook": "^3.0.0",
-    "browserify": "^13.0.1"
+    "tape": "^4.6.0"
+  },
+  "testling": {
+    "files": "test/*.js"
   },
   "scripts": {
     "lint": "jshint .",
