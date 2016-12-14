@@ -124,12 +124,17 @@ LocalMedia.prototype.stopStream = function (stream) {
     }
 };
 
-LocalMedia.prototype.startScreenShare = function (cb) {
+LocalMedia.prototype.startScreenShare = function (constraints, cb) {
     var self = this;
 
     this.emit('localScreenRequested');
 
-    getScreenMedia(function (err, stream) {
+    if (typeof constraints === 'function' && !cb) {
+        cb = constraints;
+        constraints = null;
+    }
+
+    getScreenMedia(constraints, function (err, stream) {
         if (!err) {
             self.localScreens.push(stream);
 
