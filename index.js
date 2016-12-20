@@ -8,6 +8,14 @@ var GainController = require('mediastream-gain');
 var mockconsole = require('mockconsole');
 
 
+function isAllTracksEnded(stream) {
+    var isAllTracksEnded = true;
+    stream.getTracks().forEach(function (t) {
+        isAllTracksEnded = t.readyState === 'ended' && isAllTracksEnded;
+    });
+    return isAllTracksEnded;
+}
+
 function LocalMedia(opts) {
     WildEmitter.call(this);
 
@@ -24,7 +32,9 @@ function LocalMedia(opts) {
 
     var item;
     for (item in opts) {
-        this.config[item] = opts[item];
+        if (opts.hasOwnProperty(item)) {
+            this.config[item] = opts[item];
+        }
     }
 
     this.logger = config.logger;
@@ -62,17 +72,17 @@ LocalMedia.prototype.start = function (mediaConstraints, cb) {
                 self.setMicIfEnabled(0.5);
             }
 
-            // TODO: might need to migrate to the video tracks onended
-            // FIXME: firefox does not seem to trigger this...
-            stream.onended = function () {
-                /*
-                var idx = self.localStreams.indexOf(stream);
-                if (idx > -1) {
-                    self.localScreens.splice(idx, 1);
-                }
-                self.emit('localStreamStopped', stream);
-                */
-            };
+            stream.getTracks().forEach(function (track) {
+                track.addEventListener('ended', function () {
+                    if (isAllTracksEnded(stream)) {
+                        var idx = self.localStreams.indexOf(stream);
+                        if (idx > -1) {
+                            self.localStreams.splice(idx, 1);
+                            self.emit('localStreamStopped', stream);
+                        }
+                    }
+                });
+            });
 
             self.emit('localStream', stream);
         } else {
@@ -95,12 +105,16 @@ LocalMedia.prototype.stop = function (stream) {
         stream.getTracks().forEach(function (track) { track.stop(); });
         var idx = this.localStreams.indexOf(stream);
         if (idx > -1) {
-            this.emit('localStreamStopped', stream);
+            if (webrtcSupport.prefix === 'moz') {
+                this.emit('localStreamStopped', stream);
+            }
             this.localStreams.splice(idx, 1);
         } else {
             idx = this.localScreens.indexOf(stream);
             if (idx > -1) {
-                this.emit('localScreenStopped', stream);
+                if (webrtcSupport.prefix === 'moz') {
+                    this.emit('localScreenStopped', stream);
+                }
                 this.localScreens.splice(idx, 1);
             }
         }
@@ -118,7 +132,9 @@ LocalMedia.prototype.stopStreams = function () {
     }
     this.localStreams.forEach(function (stream) {
         stream.getTracks().forEach(function (track) { track.stop(); });
-        self.emit('localStreamStopped', stream);
+        if (webrtcSupport.prefix === 'moz') {
+            self.emit('localStreamStopped', stream);
+        }
     });
     this.localStreams = [];
 };
@@ -129,16 +145,18 @@ LocalMedia.prototype.startScreenShare = function (cb) {
         if (!err) {
             self.localScreens.push(stream);
 
-            // TODO: might need to migrate to the video tracks onended
-            // Firefox does not support .onended but it does not support
-            // screensharing either
-            stream.onended = function () {
-                var idx = self.localScreens.indexOf(stream);
-                if (idx > -1) {
-                    self.localScreens.splice(idx, 1);
-                }
-                self.emit('localScreenStopped', stream);
-            };
+            stream.getTracks().forEach(function (track) {
+                track.addEventListener('ended', function () {
+                    if (isAllTracksEnded(stream)) {
+                        var idx = self.localScreens.indexOf(stream);
+                        if (idx > -1) {
+                            self.localScreens.splice(idx, 1);
+                            self.emit('localScreenStopped', stream);
+                        }
+                    }
+                });
+            });
+
             self.emit('localScreen', stream);
         }
 
@@ -155,13 +173,17 @@ LocalMedia.prototype.stopScreenShare = function (stream) {
         stream.getTracks().forEach(function (track) { track.stop(); });
         var idx = this.localScreens.indexOf(stream);
         if (idx > -1) {
-            this.emit('localScreenStopped', stream);
+            if (webrtcSupport.prefix === 'moz') {
+                this.emit('localScreenStopped', stream);
+            }
             this.localScreens.splice(idx, 1);
         }
     } else {
         this.localScreens.forEach(function (stream) {
             stream.getTracks().forEach(function (track) { track.stop(); });
-            self.emit('localScreenStopped', stream);
+            if (webrtcSupport.prefix === 'moz') {
+                self.emit('localScreenStopped', stream);
+            }
         });
         this.localScreens = [];
     }

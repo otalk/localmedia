@@ -13,7 +13,7 @@ test('test localStream and ended event', function (t) {
     media.on('localStream', function (stream) {
         t.pass('got local stream', stream);
     });
-    media.on('localStreamStopped', function(stream) {
+    media.on('localStreamStopped', function (stream) {
         t.pass('local stream stopped', stream);
         t.end();
     });
@@ -22,7 +22,7 @@ test('test localStream and ended event', function (t) {
             t.fail('startLocalMedia failed', err);
             return;
         }
-        stream.stop();
+        stream.getTracks().forEach(function (track) { track.stop(); });
     });
 });
 
@@ -51,9 +51,10 @@ test('test audioonly stream', function (t) {
             t.fail('startLocalMedia failed', err);
             return;
         }
-        stream.stop();
+        stream.getTracks().forEach(function (track) { track.stop(); });
     });
 });
+
 test('test videoonly stream', function (t) {
     var media = new LocalMedia();
     media.on('localStream', function (stream) {
@@ -78,6 +79,27 @@ test('test videoonly stream', function (t) {
             t.fail('startLocalMedia failed', err);
             return;
         }
-        stream.stop();
+        stream.getTracks().forEach(function (track) { track.stop(); });
+    });
+});
+
+
+test('test stop method', function (t) {
+    var media = new LocalMedia();
+    media.on('localStream', function (stream) {
+        t.pass('got local stream', stream);
+    });
+    media.on('localStreamStopped', function(stream) {
+        t.pass('local stream stopped', stream);
+        t.end();
+    });
+
+    media.start(null, function (err) {
+        if (err) {
+            t.fail('start failed', err);
+            return;
+        }
+
+        media.stop();
     });
 });
