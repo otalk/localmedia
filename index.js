@@ -75,11 +75,7 @@ LocalMedia.prototype.start = function (mediaConstraints, cb) {
             stream.getTracks().forEach(function (track) {
                 track.addEventListener('ended', function () {
                     if (isAllTracksEnded(stream)) {
-                        var idx = self.localStreams.indexOf(stream);
-                        if (idx > -1) {
-                            self.localStreams.splice(idx, 1);
-                            self.emit('localStreamStopped', stream);
-                        }
+                        self.emit('localStreamStopped', stream);
                     }
                 });
             });
@@ -105,17 +101,17 @@ LocalMedia.prototype.stop = function (stream) {
         stream.getTracks().forEach(function (track) { track.stop(); });
         var idx = this.localStreams.indexOf(stream);
         if (idx > -1) {
+            this.localStreams.splice(idx, 1);
             if (webrtcSupport.prefix === 'moz') {
                 this.emit('localStreamStopped', stream);
             }
-            this.localStreams.splice(idx, 1);
         } else {
             idx = this.localScreens.indexOf(stream);
             if (idx > -1) {
+                this.localScreens.splice(idx, 1);
                 if (webrtcSupport.prefix === 'moz') {
                     this.emit('localScreenStopped', stream);
                 }
-                this.localScreens.splice(idx, 1);
             }
         }
     } else {
@@ -130,13 +126,15 @@ LocalMedia.prototype.stopStreams = function () {
         this.audioMonitor.stop();
         delete this.audioMonitor;
     }
-    this.localStreams.forEach(function (stream) {
+    var oldLocalStream = this.localStreams;
+    this.localStreams = [];
+
+    oldLocalStream.forEach(function (stream) {
         stream.getTracks().forEach(function (track) { track.stop(); });
         if (webrtcSupport.prefix === 'moz') {
             self.emit('localStreamStopped', stream);
         }
     });
-    this.localStreams = [];
 };
 
 LocalMedia.prototype.startScreenShare = function (cb) {
@@ -148,11 +146,7 @@ LocalMedia.prototype.startScreenShare = function (cb) {
             stream.getTracks().forEach(function (track) {
                 track.addEventListener('ended', function () {
                     if (isAllTracksEnded(stream)) {
-                        var idx = self.localScreens.indexOf(stream);
-                        if (idx > -1) {
-                            self.localScreens.splice(idx, 1);
-                            self.emit('localScreenStopped', stream);
-                        }
+                        self.emit('localScreenStopped', stream);
                     }
                 });
             });
@@ -173,19 +167,21 @@ LocalMedia.prototype.stopScreenShare = function (stream) {
         stream.getTracks().forEach(function (track) { track.stop(); });
         var idx = this.localScreens.indexOf(stream);
         if (idx > -1) {
+            this.localScreens.splice(idx, 1);
             if (webrtcSupport.prefix === 'moz') {
                 this.emit('localScreenStopped', stream);
             }
-            this.localScreens.splice(idx, 1);
         }
     } else {
-        this.localScreens.forEach(function (stream) {
+        var oldLocalScreens = this.localScreens;
+        this.localScreens = [];
+
+        oldLocalScreens.forEach(function (stream) {
             stream.getTracks().forEach(function (track) { track.stop(); });
             if (webrtcSupport.prefix === 'moz') {
                 self.emit('localScreenStopped', stream);
             }
         });
-        this.localScreens = [];
     }
 };
 
