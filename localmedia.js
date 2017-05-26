@@ -1,6 +1,5 @@
 var util = require('util');
 var hark = require('hark');
-var adapter = require('webrtc-adapter');
 var getScreenMedia = require('getscreenmedia');
 var WildEmitter = require('wildemitter');
 var mockconsole = require('mockconsole');
@@ -11,6 +10,18 @@ function isAllTracksEnded(stream) {
         isAllTracksEnded = t.readyState === 'ended' && isAllTracksEnded;
     });
     return isAllTracksEnded;
+}
+
+function shouldWorkAroundFirefoxStopStream() {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  if (!window.navigator.mozGetUserMedia) {
+    return false;
+  }
+  var match = window.navigator.userAgent.match(/Firefox\/(\d+)\./);
+  var version = match && match.length >= 1 && parseInt(match[1], 10);
+  return version < 50;
 }
 
 function LocalMedia(opts) {
@@ -108,7 +119,7 @@ LocalMedia.prototype.stopStream = function (stream) {
             stream.getTracks().forEach(function (track) { track.stop(); });
 
             //Half-working fix for Firefox, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1208373
-            if (adapter.browserDetails.browser === 'firefox' && adapter.browserDetails.version < 50) {
+            if (shouldWorkAroundFirefoxStopStream()) {
                 this._removeStream(stream);
             }
         }
@@ -117,7 +128,7 @@ LocalMedia.prototype.stopStream = function (stream) {
             stream.getTracks().forEach(function (track) { track.stop(); });
 
             //Half-working fix for Firefox, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1208373
-            if (adapter.browserDetails.browser === 'firefox' && adapter.browserDetails.version < 50) {
+            if (shouldWorkAroundFirefoxStopStream()) {
                 self._removeStream(stream);
             }
         });
@@ -172,7 +183,7 @@ LocalMedia.prototype.stopScreenShare = function (stream) {
             stream.getTracks().forEach(function (track) { track.stop(); });
 
             //Half-working fix for Firefox, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1208373
-            if (adapter.browserDetails.browser === 'firefox' && adapter.browserDetails.version < 50) {
+            if (shouldWorkAroundFirefoxStopStream()) {
                 this._removeStream(stream);
             }
         }
@@ -181,7 +192,7 @@ LocalMedia.prototype.stopScreenShare = function (stream) {
             stream.getTracks().forEach(function (track) { track.stop(); });
 
             //Half-working fix for Firefox, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1208373
-            if (adapter.browserDetails.browser === 'firefox' && adapter.browserDetails.version < 50) {
+            if (shouldWorkAroundFirefoxStopStream()) {
                 self._removeStream(stream);
             }
         });
