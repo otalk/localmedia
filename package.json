@@ -19,7 +19,7 @@
   "description": "WebRTC abstraction for managing local media streams.",
   "dependencies": {
     "wildemitter": "^1.0.0",
-    "getscreenmedia": "^4.0.0",
+    "getscreenmedia": "^4.0.1",
     "hark": "^1.0.0",
     "mockconsole": "0.0.x"
   },
@@ -28,10 +28,10 @@
     "jshint": "^2.9.2",
     "precommit-hook": "^3.0.0",
     "tape": "^4.6.0",
-    "webrtc-adapter": "^3.1.6"
+    "webrtc-adapter": "^4.0.0"
   },
   "peerDependencies": {
-    "webrtc-adapter": "^3.1.6"
+    "webrtc-adapter": "^4.0.0"
   },
   "testling": {
     "files": "test/*.js"
