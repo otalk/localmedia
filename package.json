@@ -19,7 +19,7 @@
   "description": "WebRTC abstraction for managing local media streams.",
   "dependencies": {
     "wildemitter": "^1.0.0",
-    "getscreenmedia": "^5.0.0",
+    "getscreenmedia": "^5.1.0",
     "hark": "^1.0.0",
     "mockconsole": "0.0.x"
   },
