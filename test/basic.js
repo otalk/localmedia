@@ -9,6 +9,8 @@ var LocalMedia = require('../localmedia');
 
 
 test('test localStream and localStreamStopped event', function (t) {
+    t.plan(2);
+
     var media = new LocalMedia();
     media.on('localStream', function (stream) {
         t.pass('got local stream', stream);
@@ -30,6 +32,8 @@ test('test localStream and localStreamStopped event', function (t) {
 
 // check constraints are working as intended
 test('test audio-only stream', function (t) {
+    t.plan(4);
+
     var media = new LocalMedia();
     media.on('localStream', function (stream) {
         t.pass('got local stream');
@@ -59,6 +63,8 @@ test('test audio-only stream', function (t) {
     });
 });
 test('test video-only stream', function (t) {
+    t.plan(4);
+
     var media = new LocalMedia();
     media.on('localStream', function (stream) {
         t.pass('got local stream');
@@ -89,6 +95,7 @@ test('test video-only stream', function (t) {
 });
 
 test('test stop method', function (t) {
+    t.plan(2);
     var media = new LocalMedia();
     media.on('localStream', function (stream) {
         t.pass('got local stream', stream);

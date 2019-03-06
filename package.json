@@ -18,20 +18,20 @@
   "main": "localmedia.js",
   "description": "WebRTC abstraction for managing local media streams.",
   "dependencies": {
-    "wildemitter": "^1.0.0",
-    "getscreenmedia": "^4.0.0",
+    "getscreenmedia": "^5.1.2",
     "hark": "^1.0.0",
-    "mockconsole": "0.0.x"
+    "mockconsole": "0.0.x",
+    "webrtc-adapter": "^6.4.8",
+    "wildemitter": "^1.0.0"
   },
   "devDependencies": {
     "browserify": "^13.1.0",
     "jshint": "^2.9.2",
     "precommit-hook": "^3.0.0",
-    "tape": "^4.6.0",
-    "webrtc-adapter": "^3.1.6"
+    "tape": "^4.6.0"
   },
   "peerDependencies": {
-    "webrtc-adapter": "^3.1.6"
+    "webrtc-adapter": "^6.4.8"
   },
   "testling": {
     "files": "test/*.js"
