@@ -13,18 +13,6 @@ function isAllTracksEnded(stream) {
     return isAllTracksEnded;
 }
 
-function shouldWorkAroundFirefoxStopStream() {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-  if (!window.navigator.mozGetUserMedia) {
-    return false;
-  }
-  var match = window.navigator.userAgent.match(/Firefox\/(\d+)\./);
-  var version = match && match.length >= 1 && parseInt(match[1], 10);
-  return version < 50;
-}
-
 function LocalMedia(opts) {
     WildEmitter.call(this);
 
@@ -118,20 +106,12 @@ LocalMedia.prototype.stopStream = function (stream) {
         var idx = this.localStreams.indexOf(stream);
         if (idx > -1) {
             stream.getTracks().forEach(function (track) { track.stop(); });
-
-            //Half-working fix for Firefox, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1208373
-            if (shouldWorkAroundFirefoxStopStream()) {
-                this._removeStream(stream);
-            }
+            this._removeStream(stream);
         }
     } else {
         this.localStreams.forEach(function (stream) {
             stream.getTracks().forEach(function (track) { track.stop(); });
-
-            //Half-working fix for Firefox, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1208373
-            if (shouldWorkAroundFirefoxStopStream()) {
-                self._removeStream(stream);
-            }
+            self._removeStream(stream);
         });
     }
 };
@@ -182,20 +162,12 @@ LocalMedia.prototype.stopScreenShare = function (stream) {
         var idx = this.localScreens.indexOf(stream);
         if (idx > -1) {
             stream.getTracks().forEach(function (track) { track.stop(); });
-
-            //Half-working fix for Firefox, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1208373
-            if (shouldWorkAroundFirefoxStopStream()) {
-                this._removeStream(stream);
-            }
+            this._removeStream(stream);
         }
     } else {
         this.localScreens.forEach(function (stream) {
             stream.getTracks().forEach(function (track) { track.stop(); });
-
-            //Half-working fix for Firefox, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1208373
-            if (shouldWorkAroundFirefoxStopStream()) {
-                self._removeStream(stream);
-            }
+            self._removeStream(stream);
         });
     }
 };
